@@ -1,0 +1,48 @@
+name: Build APK
+on:
+  workflow_dispatch:
+    inputs:
+      project_zip_base64:
+        description: '项目zip base64'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出环境
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 解码恢复zip
+        run: |
+          echo "${{ github.event.inputs.project_zip_base64 }}" > raw.b64
+          base64 -d raw.b64 > source.zip
+          mkdir -p src_proj
+          unzip -q source.zip -d src_proj
+          cd src_proj
+          ls -la
+
+      - name: 配置 Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 赋予执行权限
+        run: |
+          cd src_proj
+          [ -f gradlew ] && chmod +x gradlew
+
+      - name: Gradle构建Debug‑APK
+        run: |
+          cd src_proj
+          ./gradlew assembleDebug --stacktrace
+
+      - name: 上传成品APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-apk
+          path: src_proj/**/build/outputs/apk/debug/*.apk
