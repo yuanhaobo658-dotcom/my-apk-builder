@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APK构建提交面板</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,-apple-system}
+body{max-width:880px;margin:24px auto;padding:0 16px;background:#f4f7fb}
+.box{background:#fff;padding:20px;border-radius:12px;margin:16px 0;border:1px solid #dde3ec}
+.drop{border:2px dashed #2563eb;border-radius:10px;padding:42px;text-align:center;cursor-pointer}
+textarea{width:100%;height:190px;font-family:monospace;font-size:12px;padding:10px;border:1px solid #ccc;border-radius:8px}
+button{background:#2563eb;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:15px}
+.warn{background:#fff8dd;border:1px solid #ffd880;color:#8c6000;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+<h2>📦 项目 ZIP → Base64（提交给 Actions 构建）</h2>
+<div class="warn">
+注意：仅用于编译你自己拥有完整版权的学习项目；zip根目录要有 settings.gradle，不要外面多套一层文件夹
+</div>
+
+<div class="box">
+<div id="dropZone" class="drop">📂 点击 / 拖入你的 Android 项目 .zip</div>
+<input id="fileInput" type="file" accept=".zip" style="display:none">
+<p>文件大小：<span id="sizeText">‑</span></p>
+</div>
+
+<div class="box">
+<h4>生成好的 Base64（全部复制）</h4>
+<textarea id="result" readonly placeholder="上传zip后这里就会出现…"></textarea>
+<p><button id="copyBtn" disabled>复制到剪贴板</button></p>
+<p>复制后：仓库 → Actions → Build APK → Run workflow，粘贴运行</p>
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const result = document.getElementById('result');
+const sizeText = document.getElementById('sizeText');
+const copyBtn = document.getElementById('copyBtn');
+
+dropZone.onclick = ()=> fileInput.click();
+dropZone.ondragover = e=> e.preventDefault();
+dropZone.ondrop = e=>{
+    e.preventDefault();
+    if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+};
+fileInput.onchange = ()=> fileInput.files[0] && handleFile(fileInput.files[0]);
+
+async function handleFile(f){
+    sizeText.innerText = (f.size /1024/1024).toFixed(2)+' MB';
+    const buf = await f.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let str = '';
+    for(let i=0;i<bytes.length;i++) str += String.fromCharCode(bytes[i]);
+    const b64 = btoa(str);
+    result.value = b64;
+    copyBtn.disabled = false;
+}
+
+copyBtn.onclick = async ()=>{
+    await navigator.clipboard.writeText(result.value);
+    alert('✅已复制！去Actions运行工作流');
+};
+</script>
+</body>
+</html>
